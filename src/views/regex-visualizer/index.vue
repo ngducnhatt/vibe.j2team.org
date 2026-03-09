@@ -405,7 +405,7 @@ const getRectWidth = (raw: string) => Math.max(45, truncate(raw, 10).length * 9)
           Chính sách
         </RouterLink>
         <a
-          href="https://github.com/j2team/vibe"
+          href="https://github.com/J2TEAM/vibe.j2team.org"
           target="_blank"
           rel="noopener noreferrer"
           class="px-3 py-2 text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1"
