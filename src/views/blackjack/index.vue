@@ -3,23 +3,45 @@ defineOptions({
   name: "BlackjackView",
 });
 import { ref, onMounted, onUnmounted, defineAsyncComponent, shallowRef } from "vue";
+import type { Ref, ComputedRef } from "vue";
+import type { Player, Dealer, GameStatus, Card } from "./types/blackjack";
+
+// Định nghĩa Interface cho logic game để tránh lỗi 'any'
+interface BlackjackLogic {
+  player: Ref<Player>;
+  dealer: Ref<Dealer>;
+  status: Ref<GameStatus>;
+  resultMessage: Ref<string>;
+  startNewGame: (amount: number) => Promise<void>;
+  hit: () => void;
+  stand: () => Promise<void>;
+  doubleDown: () => void;
+  split: () => void;
+  resetGame: () => void;
+  canSplit: ComputedRef<boolean>;
+  canDouble: ComputedRef<boolean>;
+  getScoreDisplay: (hand: Card[]) => string;
+  isSoundEnabled: Ref<boolean>;
+  toggleSound: () => void;
+}
 
 // 1. Tách các Component giao diện (UI)
 const BlackjackTable = defineAsyncComponent(() => import("./components/BlackjackTable.vue"));
 const BetControl = defineAsyncComponent(() => import("./components/BetControl.vue"));
 const RulesModal = defineAsyncComponent(() => import("./components/RulesModal.vue"));
 
-// 2. Chuẩn bị refs cho logic game
-const blackjackLogic = shallowRef<any>(null);
+// 2. Chuẩn bị refs cho logic game với kiểu dữ liệu tường minh
+const blackjackLogic = shallowRef<BlackjackLogic | null>(null);
 const isReady = ref(false);
 const isRulesOpen = ref(false);
 
 onMounted(async () => {
   document.body.style.overflow = "hidden";
-  
-  // 3. Tách logic game (Composable) ra khỏi bundle chính (Dynamic Import)
-  const { useBlackjack } = await import("./composables/useBlackjack");
-  blackjackLogic.value = useBlackjack();
+
+  // 3. Tách logic game ra khỏi bundle chính (Dynamic Import)
+  // Lưu ý: Chúng ta gọi trực tiếp useBlackjack ở đây sau khi dynamic import
+  const { useBlackjack: useBlackjackFn } = await import("./composables/useBlackjack");
+  blackjackLogic.value = useBlackjackFn() as unknown as BlackjackLogic;
   isReady.value = true;
 });
 
@@ -165,7 +187,7 @@ const handleImport = () => {
             </button>
           </div>
 
-          <div v-if="isReady" class="flex flex-col items-end">
+          <div v-if="isReady && blackjackLogic" class="flex flex-col items-end">
             <span
               class="font-display font-black text-sm sm:text-lg tracking-tighter text-accent-amber"
             >
@@ -185,7 +207,7 @@ const handleImport = () => {
       </div>
 
       <!-- Unified Game Wrapper -->
-      <div v-else class="w-full max-w-4xl px-4 sm:px-6 flex flex-col items-center shrink-0">
+      <div v-else-if="blackjackLogic" class="w-full max-w-4xl px-4 sm:px-6 flex flex-col items-center shrink-0">
         <!-- Title Row -->
         <div class="w-full mb-2 flex items-center justify-between">
           <h1
