@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { RouterLink } from 'vue-router'
-import { termContents } from './content'
+import { getTermContent } from './content'
 import type { SolarTerm } from './types'
 import GlobalBackground from './components/GlobalBackground.vue'
 import SolarWheel from './components/SolarWheel.vue'
@@ -308,17 +308,31 @@ const nextTermCountdown = computed(() => {
   return `Còn ${diffDays} ngày nữa là đến Tiết ${next.name}`
 })
 
-const modalContent = computed(() => {
-  if (!activeTerm.value) return ''
-  return (
-    termContents[activeTerm.value.name] ||
-    `
-    <div style="background: #111; color: #fff; height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif;">
-      <h1>Nội dung đang được cập nhật...</h1>
-    </div>
-  `
-  )
-})
+// Solar term content is lazy-loaded from content.ts instead of statically importing all 24 HTML files
+const modalContent = ref('')
+const loadingContent = `
+  <div style="background: #111; color: #fff; height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif;">
+    <h1>Đang tải nội dung...</h1>
+  </div>
+`
+const fallbackContent = `
+  <div style="background: #111; color: #fff; height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif;">
+    <h1>Nội dung đang được cập nhật...</h1>
+  </div>
+`
+
+watch(
+  () => activeTerm.value?.name,
+  async (termName) => {
+    if (!termName) {
+      modalContent.value = ''
+      return
+    }
+    modalContent.value = loadingContent
+    const content = await getTermContent(termName)
+    modalContent.value = content ?? fallbackContent
+  },
+)
 
 const currentMonthDay = computed(() => {
   if (selectedDate.value) return selectedDate.value.slice(5)
